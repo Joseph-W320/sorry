@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统修复请求: 乖乖专用</title>
+    <style>
+        body { background-color: #1a1a1a; color: #00ff00; font-family: 'Courier New', monospace; margin: 0; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
+        #display-window { width: 100%; max-width: 600px; text-align: left; line-height: 1.8; font-size: 16px; }
+        /* 画面显示隐藏动画 */
+        .scene { display: none; animation: fadeIn 0.8s forwards; }
+        .active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* 第四、五画面爱心飘落 */
+        .heart-particle { position: fixed; top: -20px; color: #ff69b4; font-size: 20px; user-select: none; z-index: 1000; pointer-events: none; animation: fall linear forwards; }
+        @keyframes fall { to { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
+
+        /* 猫咪样式 */
+        .cat-box { text-align: center; }
+        .cat-img { width: 220px; border-radius: 20px; box-shadow: 0 0 15px #ff69b4; margin-bottom: 20px; }
+        .final-text { color: #ff69b4; font-size: 1.3rem; font-weight: bold; text-align: center; line-height: 1.6; }
+    </style>
+</head>
+<body>
+
+    <div id="display-window">
+        <div id="scene1" class="scene"></div>
+        <div id="scene2" class="scene"></div>
+        <div id="scene3" class="scene"></div>
+        <div id="scene4" class="scene cat-box">
+            <img class="cat-img" src="cat.png" alt="道歉猫咪">
+            <div class="final-text" id="final-msg"></div>
+        </div>
+    </div>
+
+    <audio id="meow-sound" src="meow.mp3" preload="auto"></audio>
+
+    <script>
+        const scene1 = document.getElementById('scene1');
+        const scene2 = document.getElementById('scene2');
+        const scene3 = document.getElementById('scene3');
+        const scene4 = document.getElementById('scene4');
+        const audio = document.getElementById('meow-sound');
+
+        // 模拟打字效果函数
+        function typeEffect(element, textArray, callback) {
+            let i = 0;
+            function addLine() {
+                if (i < textArray.length) {
+                    const p = document.createElement('p');
+                    p.textContent = textArray[i];
+                    element.appendChild(p);
+                    i++;
+                    setTimeout(addLine, 1000);
+                } else {
+                    setTimeout(callback, 1500);
+                }
+            }
+            addLine();
+        }
+
+        // 真实进度条函数
+        function startProgress(element, callback) {
+            let progress = 0;
+            const p = document.createElement('p');
+            element.appendChild(p);
+            const interval = setInterval(() => {
+                progress++;
+                p.textContent = `系统修复中... ${progress}%`;
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    const p2 = document.createElement('p');
+                    p2.textContent = "Bug 已修复，系统请求重启。";
+                    element.appendChild(p2);
+                    setTimeout(callback, 2000);
+                }
+            }, 50); // 50ms跳1%，总共5秒左右
+        }
+
+        // 爱心雨函数
+        function createHearts() {
+            setInterval(() => {
+                const heart = document.createElement('div');
+                heart.className = 'heart-particle';
+                heart.innerHTML = '❤';
+                heart.style.left = Math.random() * 100 + 'vw';
+                heart.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                heart.style.opacity = Math.random();
+                document.body.appendChild(heart);
+                setTimeout(() => heart.remove(), 5000);
+            }, 300);
+        }
+
+        // 剧本执行流程
+        function startDrama() {
+            // 第一画面
+            scene1.classList.add('active');
+            typeEffect(scene1, [
+                "正在建立与 [乖乖] 的通信连接... 成功",
+                "正在自检情绪控制系统... 发现严重错误 (Error 404)",
+                "正在加载“求原谅”协议 v1.0..."
+            ], () => {
+                scene1.classList.remove('active');
+                // 第二画面
+                scene2.classList.add('active');
+                typeEffect(scene2, [
+                    "> git commit -m '修复：忽略了乖乖的想法和感受'",
+                    "> git commit -m '更新：将小兮大人的心情优先级设为最高 (Highest)'",
+                    "> git commit -m '重构：优化沟通模式，增加 1000% 的体贴'",
+                    "> git push -f origin 永远在一起"
+                ], () => {
+                    scene2.classList.remove('active');
+                    // 第三画面
+                    scene3.classList.add('active');
+                    startProgress(scene3, () => {
+                        scene3.classList.remove('active');
+                        // 第四、五画面合并展示
+                        scene4.classList.add('active');
+                        createHearts();
+                        document.getElementById('final-msg').innerHTML = "小兮大人，你愿意给这个笨蛋<br>一个重新运行的机会吗？喵~";
+                        audio.play().catch(() => {});
+                    });
+                });
+            });
+        }
+
+        window.onload = startDrama;
+    </script>
+</body>
+</html>
