@@ -9,38 +9,37 @@
         #start-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #00ff00; cursor: pointer; text-align: center; }
         #display-window { width: 100%; max-width: 750px; }
 
-        /* 核心动画：逐字出现 + 延时逐字变色 */
+        /* 核心动画：一边出现一边变色 */
         .line-text {
             font-size: 24px; font-weight: bold; margin: 25px 0;
-            display: block; position: relative;
-            background: linear-gradient(to right, #ff69b4 33%, #00ff00 33%, #00ff00 66%, transparent 66%);
-            background-size: 300% 100%;
-            background-position: 100% 0; /* 初始完全透明 */
+            display: block;
+            /* 渐变设计：透明 -> 绿色 -> 粉色 */
+            background: linear-gradient(to right, 
+                #ff69b4 0%, 
+                #ff69b4 30%, 
+                #00ff00 50%, 
+                #00ff00 70%, 
+                transparent 90%);
+            background-size: 400% 100%;
+            background-position: 100% 0;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            white-space: nowrap; overflow: hidden;
+            white-space: nowrap;
         }
 
-        /* 出现动画：背景从 100% 移到 66%，露出绿色部分 */
-        @keyframes showGreen {
-            from { background-position: 100% 0; }
-            to { background-position: 66.6% 0; }
-        }
-
-        /* 变色动画：背景从 66.6% 移到 0%，绿色变粉色 */
-        @keyframes turnPink {
-            from { background-position: 66.6% 0; }
-            to { background-position: 0% 0; }
+        /* 流水动画：从右往左拉动背景，实现先绿后粉的平滑过渡 */
+        @keyframes smoothFlow {
+            0% { background-position: 100% 0; }
+            100% { background-position: 0% 0; }
         }
 
         .scene { display: none; }
         .active { display: block; }
 
-        /* 进度条特殊样式 */
-        .progress-line { font-size: 26px; color: #00ff00; font-weight: bold; transition: color 2s; }
-        .pink-text { color: #ff69b4 !important; }
+        /* 进度条：保持纯色渐变 */
+        .progress-line { font-size: 26px; color: #00ff00; font-weight: bold; }
+        .pink-text { color: #ff69b4 !important; transition: color 1.5s ease; }
 
-        /* 爱心与猫咪 */
         .heart-particle { position: fixed; top: -20px; color: #ff69b4; font-size: 24px; user-select: none; z-index: 1000; pointer-events: none; animation: fall linear forwards; }
         @keyframes fall { to { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
         .cat-box { text-align: center; }
@@ -53,7 +52,7 @@
 
     <div id="start-overlay" onclick="initSystem()">
         <div style="font-size: 50px; margin-bottom: 20px;">💖</div>
-        <p style="font-size: 20px; letter-spacing: 2px;">检测到重大情感异常<br>点击确认执行[乖乖]修复协议</p>
+        <p style="font-size: 20px;">检测到重大情感异常<br>点击确认执行[乖乖]修复协议</p>
     </div>
 
     <div id="display-window">
@@ -73,14 +72,12 @@
         
         function initSystem() {
             document.getElementById('start-overlay').style.display = 'none';
-            // 微信音频自动播放补丁
             if (window.WeixinJSBridge) {
                 WeixinJSBridge.invoke('getNetworkType', {}, () => { audio.play(); audio.pause(); }, false);
             }
             startDrama();
         }
 
-        // 核心流程控制
         async function runScene(sceneId, textArray) {
             const container = document.getElementById(sceneId);
             container.classList.add('active');
@@ -91,22 +88,14 @@
                 p.textContent = text;
                 container.appendChild(p);
 
-                // 1. 逐字出现（绿色）
-                p.style.animation = "showGreen 2.5s linear forwards";
-                await new Promise(r => setTimeout(r, 2500)); // 等待出现完
-
-                // 2. 等待 1.5 秒
-                await new Promise(r => setTimeout(r, 1500));
-
-                // 3. 逐字变色（变粉）
-                p.style.animation = "turnPink 2.5s linear forwards";
-                await new Promise(r => setTimeout(r, 2500)); // 等待变色完
-
-                // 4. 等待 1 秒再出下一行
-                await new Promise(r => setTimeout(r, 1000));
+                // 统一的平滑流动动画，时长设长一点以便观察一边出一边变色
+                p.style.animation = "smoothFlow 5s linear forwards";
+                
+                // 等待这一行流完加上停顿时间
+                await new Promise(r => setTimeout(r, 6000));
             }
             
-            await new Promise(r => setTimeout(r, 1000));
+            await new Promise(r => setTimeout(r, 5000)); // 换场停顿
             container.classList.remove('active');
         }
 
@@ -117,20 +106,18 @@
             p.className = 'progress-line';
             container.appendChild(p);
 
-            // 1%-100% 滚动
             for (let i = 1; i <= 100; i++) {
                 p.textContent = `系统修复中... ${i}%`;
                 await new Promise(r => setTimeout(r, 40));
             }
             
-            // 变色逻辑：整行变粉
             p.classList.add('pink-text');
             const p2 = document.createElement('p');
             p2.className = 'progress-line pink-text';
             p2.textContent = "Bug 已修复，系统请求重启。";
             container.appendChild(p2);
             
-            await new Promise(r => setTimeout(r, 2500));
+            await new Promise(r => setTimeout(r, 3000));
             container.classList.remove('active');
         }
 
@@ -147,14 +134,12 @@
         }
 
         async function startDrama() {
-            // 第一画面
             await runScene('scene1', [
                 "正在建立与 [乖乖] 的通信连接... 成功",
                 "正在自检情绪控制系统... 发现严重错误 (Error 404)",
                 "正在加载“求原谅”协议 v1.0..."
             ]);
 
-            // 第二画面
             await runScene('scene2', [
                 "> git commit -m '修复：忽略了乖乖的想法和感受'",
                 "> git commit -m '更新：将小兮大人的心情优先级设为最高 (Highest)'",
@@ -162,10 +147,8 @@
                 "> git push -f origin 永远在一起"
             ]);
 
-            // 第三画面
             await startProgress();
 
-            // 最终画面
             audio.play();
             document.getElementById('scene4').classList.add('active');
             createHearts();
@@ -174,4 +157,3 @@
     </script>
 </body>
 </html>
-
