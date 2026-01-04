@@ -5,36 +5,60 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>系统修复请求: 乖乖专用</title>
     <style>
-        body { background-color: #1a1a1a; color: #00ff00; font-family: 'Courier New', monospace; margin: 0; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
-        #display-window { width: 100%; max-width: 600px; text-align: left; line-height: 1.8; font-size: 16px; }
-        /* 画面显示隐藏动画 */
-        .scene { display: none; animation: fadeIn 0.8s forwards; }
-        .active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        /* 基础样式 */
+        body { background-color: #1a1a1a; margin: 0; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; font-family: 'Microsoft YaHei', 'Courier New', monospace; }
+        
+        /* 启动遮罩：解决微信/浏览器音频不自动播放问题 */
+        #start-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #00ff00; cursor: pointer; }
+        
+        #display-window { width: 100%; max-width: 700px; text-align: left; }
 
-        /* 第四、五画面爱心飘落 */
-        .heart-particle { position: fixed; top: -20px; color: #ff69b4; font-size: 20px; user-select: none; z-index: 1000; pointer-events: none; animation: fall linear forwards; }
+        /* 字体增强与变色动画 */
+        .scene p { 
+            font-size: 22px; /* 增加字号 */
+            font-weight: bold; /* 加粗 */
+            margin: 15px 0;
+            animation: colorChange 4s forwards; /* 变色动画 */
+        }
+
+        @keyframes colorChange {
+            0% { color: #00ff00; opacity: 0; }   /* 初始绿色 */
+            20% { opacity: 1; }
+            100% { color: #ff69b4; }             /* 最终粉色 */
+        }
+
+        .scene { display: none; }
+        .active { display: block; }
+
+        /* 爱心飘落 */
+        .heart-particle { position: fixed; top: -20px; color: #ff69b4; font-size: 24px; user-select: none; z-index: 1000; pointer-events: none; animation: fall linear forwards; }
         @keyframes fall { to { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
 
-        /* 猫咪样式 */
+        /* 猫咪与最终文字 */
         .cat-box { text-align: center; }
-        .cat-img { width: 220px; border-radius: 20px; box-shadow: 0 0 15px #ff69b4; margin-bottom: 20px; }
-        .final-text { color: #ff69b4; font-size: 1.3rem; font-weight: bold; text-align: center; line-height: 1.6; }
+        .cat-img { width: 250px; border-radius: 25px; box-shadow: 0 0 20px #ff69b4; margin-bottom: 25px; }
+        .final-text { color: #ff69b4; font-size: 26px; font-weight: bold; line-height: 1.8; animation: beat 1.5s infinite; }
+        @keyframes beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     </style>
 </head>
 <body>
+
+    <div id="start-overlay" onclick="initSystem()">
+        <div style="font-size: 40px; margin-bottom: 20px;">❤</div>
+        <p>点击开启[乖乖]专属修复协议</p>
+    </div>
 
     <div id="display-window">
         <div id="scene1" class="scene"></div>
         <div id="scene2" class="scene"></div>
         <div id="scene3" class="scene"></div>
         <div id="scene4" class="scene cat-box">
-            <img class="cat-img" src="cat.png" alt="道歉猫咪">
+            <img class="cat-img" src="cat.gif" alt="道歉猫咪">
             <div class="final-text" id="final-msg"></div>
         </div>
     </div>
 
-    <audio id="meow-sound" src="meow.mp3" preload="auto"></audio>
+    <audio id="meow-sound" src="meow.mp3" loop preload="auto"></audio>
 
     <script>
         const scene1 = document.getElementById('scene1');
@@ -42,8 +66,14 @@
         const scene3 = document.getElementById('scene3');
         const scene4 = document.getElementById('scene4');
         const audio = document.getElementById('meow-sound');
+        const overlay = document.getElementById('start-overlay');
 
-        // 模拟打字效果函数
+        function initSystem() {
+            overlay.style.display = 'none'; // 隐藏遮罩
+            startDrama();
+        }
+
+        // 打字与变色效果，增加间隔到 1.5秒
         function typeEffect(element, textArray, callback) {
             let i = 0;
             function addLine() {
@@ -52,15 +82,14 @@
                     p.textContent = textArray[i];
                     element.appendChild(p);
                     i++;
-                    setTimeout(addLine, 1000);
+                    setTimeout(addLine, 1500); // 间隔增长
                 } else {
-                    setTimeout(callback, 1500);
+                    setTimeout(callback, 2000);
                 }
             }
             addLine();
         }
 
-        // 真实进度条函数
         function startProgress(element, callback) {
             let progress = 0;
             const p = document.createElement('p');
@@ -75,10 +104,9 @@
                     element.appendChild(p2);
                     setTimeout(callback, 2000);
                 }
-            }, 50); // 50ms跳1%，总共5秒左右
+            }, 60); 
         }
 
-        // 爱心雨函数
         function createHearts() {
             setInterval(() => {
                 const heart = document.createElement('div');
@@ -86,13 +114,11 @@
                 heart.innerHTML = '❤';
                 heart.style.left = Math.random() * 100 + 'vw';
                 heart.style.animationDuration = (Math.random() * 3 + 2) + 's';
-                heart.style.opacity = Math.random();
                 document.body.appendChild(heart);
                 setTimeout(() => heart.remove(), 5000);
-            }, 300);
+            }, 250);
         }
 
-        // 剧本执行流程
         function startDrama() {
             // 第一画面
             scene1.classList.add('active');
@@ -115,17 +141,15 @@
                     scene3.classList.add('active');
                     startProgress(scene3, () => {
                         scene3.classList.remove('active');
-                        // 第四、五画面合并展示
+                        // 第四、五画面（音乐开启）
+                        audio.play(); // 此处触发音乐循环
                         scene4.classList.add('active');
                         createHearts();
                         document.getElementById('final-msg').innerHTML = "小兮大人，你愿意给这个笨蛋<br>一个重新运行的机会吗？喵~";
-                        audio.play().catch(() => {});
                     });
                 });
             });
         }
-
-        window.onload = startDrama;
     </script>
 </body>
 </html>
