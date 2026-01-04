@@ -2,32 +2,27 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>系统修复请求: 乖乖专用</title>
     <style>
-        body { background-color: #1a1a1a; margin: 0; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; font-family: 'Microsoft YaHei', sans-serif; }
-        #start-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #00ff00; cursor: pointer; text-align: center; }
-        #display-window { width: 100%; max-width: 750px; }
+        body { background-color: #1a1a1a; margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; font-family: 'Microsoft YaHei', sans-serif; }
+        #start-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #00ff00; cursor: pointer; text-align: center; padding: 20px; box-sizing: border-box; }
+        
+        #display-window { width: 90%; max-width: 500px; }
 
-        /* 核心动画：一边出现一边变色 */
         .line-text {
-            font-size: 24px; font-weight: bold; margin: 25px 0;
+            font-size: 20px; /* 手机端基础字号 */
+            font-weight: bold; margin: 20px 0;
             display: block;
-            /* 渐变设计：透明 -> 绿色 -> 粉色 */
-            background: linear-gradient(to right, 
-                #ff69b4 0%, 
-                #ff69b4 30%, 
-                #00ff00 50%, 
-                #00ff00 70%, 
-                transparent 90%);
+            background: linear-gradient(to right, #ff69b4 0%, #ff69b4 30%, #00ff00 50%, #00ff00 70%, transparent 90%);
             background-size: 400% 100%;
             background-position: 100% 0;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            white-space: nowrap;
+            word-wrap: break-word; /* 自动换行 */
+            line-height: 1.5;
         }
 
-        /* 流水动画：从右往左拉动背景，实现先绿后粉的平滑过渡 */
         @keyframes smoothFlow {
             0% { background-position: 100% 0; }
             100% { background-position: 0% 0; }
@@ -36,23 +31,23 @@
         .scene { display: none; }
         .active { display: block; }
 
-        /* 进度条：保持纯色渐变 */
-        .progress-line { font-size: 26px; color: #00ff00; font-weight: bold; }
+        .progress-line { font-size: 22px; color: #00ff00; font-weight: bold; margin: 15px 0; }
         .pink-text { color: #ff69b4 !important; transition: color 1.5s ease; }
 
-        .heart-particle { position: fixed; top: -20px; color: #ff69b4; font-size: 24px; user-select: none; z-index: 1000; pointer-events: none; animation: fall linear forwards; }
+        .heart-particle { position: fixed; top: -20px; color: #ff69b4; font-size: 20px; user-select: none; z-index: 1000; pointer-events: none; animation: fall linear forwards; }
         @keyframes fall { to { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
+        
         .cat-box { text-align: center; }
-        .cat-img { width: 250px; border-radius: 25px; box-shadow: 0 0 30px #ff69b4; margin-bottom: 25px; }
-        .final-text { color: #ff69b4; font-size: 28px; font-weight: bold; line-height: 1.8; animation: beat 1.5s infinite; }
-        @keyframes beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+        .cat-img { width: 70%; max-width: 250px; border-radius: 20px; box-shadow: 0 0 25px #ff69b4; margin-bottom: 20px; }
+        .final-text { color: #ff69b4; font-size: 22px; font-weight: bold; line-height: 1.6; animation: beat 1.5s infinite; }
+        @keyframes beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     </style>
 </head>
 <body>
 
     <div id="start-overlay" onclick="initSystem()">
-        <div style="font-size: 50px; margin-bottom: 20px;">💖</div>
-        <p style="font-size: 20px;">检测到重大情感异常<br>点击确认执行[乖乖]修复协议</p>
+        <div style="font-size: 40px; margin-bottom: 20px;">💖</div>
+        <p style="font-size: 18px;">检测到重大情感异常<br>点击确认执行[乖乖]修复协议</p>
     </div>
 
     <div id="display-window">
@@ -73,13 +68,16 @@
         function initSystem() {
             document.getElementById('start-overlay').style.display = 'none';
             if (window.WeixinJSBridge) {
-                WeixinJSBridge.invoke('getNetworkType', {}, () => { audio.play(); audio.pause(); }, false);
+                WeixinJSBridge.invoke('getNetworkType', {}, () => { audio.play(); }, false);
+            } else {
+                audio.play();
             }
             startDrama();
         }
 
         async function runScene(sceneId, textArray) {
             const container = document.getElementById(sceneId);
+            container.innerHTML = ''; // 清空之前的内容
             container.classList.add('active');
             
             for (let text of textArray) {
@@ -87,20 +85,17 @@
                 p.className = 'line-text';
                 p.textContent = text;
                 container.appendChild(p);
-
-                // 统一的平滑流动动画，时长设长一点以便观察一边出一边变色
                 p.style.animation = "smoothFlow 5s linear forwards";
-                
-                // 等待这一行流完加上停顿时间
                 await new Promise(r => setTimeout(r, 6000));
             }
             
-            await new Promise(r => setTimeout(r, 5000)); // 换场停顿
+            await new Promise(r => setTimeout(r, 3000));
             container.classList.remove('active');
         }
 
         async function startProgress() {
             const container = document.getElementById('scene3');
+            container.innerHTML = '';
             container.classList.add('active');
             const p = document.createElement('p');
             p.className = 'progress-line';
@@ -108,7 +103,7 @@
 
             for (let i = 1; i <= 100; i++) {
                 p.textContent = `系统修复中... ${i}%`;
-                await new Promise(r => setTimeout(r, 40));
+                await new Promise(r => setTimeout(r, 30));
             }
             
             p.classList.add('pink-text');
@@ -130,7 +125,7 @@
                 heart.style.animationDuration = (Math.random() * 3 + 2) + 's';
                 document.body.appendChild(heart);
                 setTimeout(() => heart.remove(), 5000);
-            }, 250);
+            }, 300);
         }
 
         async function startDrama() {
