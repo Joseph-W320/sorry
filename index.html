@@ -11,15 +11,14 @@
         #display-window { width: 90%; max-width: 500px; }
 
         .line-text {
-            font-size: 20px; /* 手机端基础字号 */
-            font-weight: bold; margin: 20px 0;
+            font-size: 20px; font-weight: bold; margin: 20px 0;
             display: block;
             background: linear-gradient(to right, #ff69b4 0%, #ff69b4 30%, #00ff00 50%, #00ff00 70%, transparent 90%);
             background-size: 400% 100%;
             background-position: 100% 0;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            word-wrap: break-word; /* 自动换行 */
+            word-wrap: break-word;
             line-height: 1.5;
         }
 
@@ -60,24 +59,30 @@
         </div>
     </div>
 
-    <audio id="meow-sound" src="meow.mp3" loop preload="auto"></audio>
+    <audio id="meow-sound" src="meow.mp3" loop preload="auto" muted></audio>
 
     <script>
         const audio = document.getElementById('meow-sound');
         
         function initSystem() {
             document.getElementById('start-overlay').style.display = 'none';
+            
+            // 关键：在这里只是“启动”播放状态，但由于设置了 muted (静音)，用户听不到
+            // 这样做是为了在微信里骗过系统的权限检查
+            audio.play(); 
+            
             if (window.WeixinJSBridge) {
-                WeixinJSBridge.invoke('getNetworkType', {}, () => { audio.play(); }, false);
-            } else {
-                audio.play();
+                WeixinJSBridge.invoke('getNetworkType', {}, () => {
+                    audio.play();
+                }, false);
             }
+            
             startDrama();
         }
 
         async function runScene(sceneId, textArray) {
             const container = document.getElementById(sceneId);
-            container.innerHTML = ''; // 清空之前的内容
+            container.innerHTML = '';
             container.classList.add('active');
             
             for (let text of textArray) {
@@ -89,7 +94,7 @@
                 await new Promise(r => setTimeout(r, 6000));
             }
             
-            await new Promise(r => setTimeout(r, 3000));
+            await new Promise(r => setTimeout(r, 2000));
             container.classList.remove('active');
         }
 
@@ -144,7 +149,12 @@
 
             await startProgress();
 
+            // --- 到达第四画面 ---
+            // 取消静音，重置播放进度，正式开始出声
+            audio.muted = false;
+            audio.currentTime = 0; 
             audio.play();
+            
             document.getElementById('scene4').classList.add('active');
             createHearts();
             document.getElementById('final-msg').innerHTML = "小兮大人，你愿意给这个笨蛋<br>一个重新运行的机会吗？喵~";
