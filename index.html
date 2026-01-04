@@ -59,24 +59,14 @@
         </div>
     </div>
 
-    <audio id="meow-sound" src="meow.mp3" loop preload="auto" muted></audio>
+    <audio id="meow-sound" src="meow.mp3" loop preload="auto"></audio>
 
     <script>
         const audio = document.getElementById('meow-sound');
         
         function initSystem() {
             document.getElementById('start-overlay').style.display = 'none';
-            
-            // 关键：在这里只是“启动”播放状态，但由于设置了 muted (静音)，用户听不到
-            // 这样做是为了在微信里骗过系统的权限检查
-            audio.play(); 
-            
-            if (window.WeixinJSBridge) {
-                WeixinJSBridge.invoke('getNetworkType', {}, () => {
-                    audio.play();
-                }, false);
-            }
-            
+            // 此时完全不触发音频播放
             startDrama();
         }
 
@@ -134,12 +124,14 @@
         }
 
         async function startDrama() {
+            // 第一画面
             await runScene('scene1', [
                 "正在建立与 [乖乖] 的通信连接... 成功",
                 "正在自检情绪控制系统... 发现严重错误 (Error 404)",
                 "正在加载“求原谅”协议 v1.0..."
             ]);
 
+            // 第二画面
             await runScene('scene2', [
                 "> git commit -m '修复：忽略了乖乖的想法和感受'",
                 "> git commit -m '更新：将小兮大人的心情优先级设为最高 (Highest)'",
@@ -147,13 +139,13 @@
                 "> git push -f origin 永远在一起"
             ]);
 
+            // 第三画面（进度条）
             await startProgress();
 
-            // --- 到达第四画面 ---
-            // 取消静音，重置播放进度，正式开始出声
-            audio.muted = false;
-            audio.currentTime = 0; 
-            audio.play();
+            // --- 到达第四画面（在此处才触发音乐） ---
+            audio.play().catch(e => {
+                console.log("微信/浏览器拦截了自动播放，需用户交互。但在之前的遮罩层我们已经有了交互，通常此处可以播放。");
+            });
             
             document.getElementById('scene4').classList.add('active');
             createHearts();
