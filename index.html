@@ -6,41 +6,45 @@
     <title>系统修复请求: 乖乖专用</title>
     <style>
         body { background-color: #1a1a1a; margin: 0; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; font-family: 'Microsoft YaHei', sans-serif; }
-        
-        #start-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #00ff00; cursor: pointer; text-align: center; }
-        
-        #display-window { width: 100%; max-width: 700px; }
+        #start-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #00ff00; cursor: pointer; text-align: center; }
+        #display-window { width: 100%; max-width: 750px; }
 
-        /* 核心改进：逐字左右渐变效果 */
-        .scene p { 
-            font-size: 24px; 
-            font-weight: bold; 
-            margin: 20px 0;
-            /* 设置初始渐变：左侧粉色，右侧绿色，通过移动背景实现从左往右变色 */
-            background: linear-gradient(to right, #ff69b4 50%, #00ff00 50%);
-            background-size: 200% 100%;
-            background-position: 100% 0;
+        /* 核心动画：逐字出现 + 延时逐字变色 */
+        .line-text {
+            font-size: 24px; font-weight: bold; margin: 25px 0;
+            display: block; position: relative;
+            background: linear-gradient(to right, #ff69b4 33%, #00ff00 33%, #00ff00 66%, transparent 66%);
+            background-size: 300% 100%;
+            background-position: 100% 0; /* 初始完全透明 */
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            /* 动画：3秒内完成从右往左的背景位移，实现文字从左往右变粉色 */
-            animation: readingEffect 3s ease-out forwards;
+            white-space: nowrap; overflow: hidden;
         }
 
-        @keyframes readingEffect {
-            from { background-position: 100% 0; opacity: 0; }
-            to { background-position: 0% 0; opacity: 1; }
+        /* 出现动画：背景从 100% 移到 66%，露出绿色部分 */
+        @keyframes showGreen {
+            from { background-position: 100% 0; }
+            to { background-position: 66.6% 0; }
+        }
+
+        /* 变色动画：背景从 66.6% 移到 0%，绿色变粉色 */
+        @keyframes turnPink {
+            from { background-position: 66.6% 0; }
+            to { background-position: 0% 0; }
         }
 
         .scene { display: none; }
         .active { display: block; }
 
-        /* 爱心飘落 */
+        /* 进度条特殊样式 */
+        .progress-line { font-size: 26px; color: #00ff00; font-weight: bold; transition: color 2s; }
+        .pink-text { color: #ff69b4 !important; }
+
+        /* 爱心与猫咪 */
         .heart-particle { position: fixed; top: -20px; color: #ff69b4; font-size: 24px; user-select: none; z-index: 1000; pointer-events: none; animation: fall linear forwards; }
         @keyframes fall { to { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
-
-        /* 猫咪与最终画面 */
         .cat-box { text-align: center; }
-        .cat-img { width: 250px; border-radius: 25px; box-shadow: 0 0 25px #ff69b4; margin-bottom: 25px; }
+        .cat-img { width: 250px; border-radius: 25px; box-shadow: 0 0 30px #ff69b4; margin-bottom: 25px; }
         .final-text { color: #ff69b4; font-size: 28px; font-weight: bold; line-height: 1.8; animation: beat 1.5s infinite; }
         @keyframes beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
     </style>
@@ -49,7 +53,7 @@
 
     <div id="start-overlay" onclick="initSystem()">
         <div style="font-size: 50px; margin-bottom: 20px;">💖</div>
-        <p style="font-size: 18px;">系统检测到情绪异常<br>点击进入[乖乖]专属修复通道</p>
+        <p style="font-size: 20px; letter-spacing: 2px;">检测到重大情感异常<br>点击确认执行[乖乖]修复协议</p>
     </div>
 
     <div id="display-window">
@@ -57,7 +61,7 @@
         <div id="scene2" class="scene"></div>
         <div id="scene3" class="scene"></div>
         <div id="scene4" class="scene cat-box">
-            <img class="cat-img" src="cat.png" alt="道歉猫咪">
+            <img class="cat-img" src="cat.gif" alt="道歉猫咪">
             <div class="final-text" id="final-msg"></div>
         </div>
     </div>
@@ -65,49 +69,69 @@
     <audio id="meow-sound" src="meow.mp3" loop preload="auto"></audio>
 
     <script>
-        const scenes = [document.getElementById('scene1'), document.getElementById('scene2'), document.getElementById('scene3'), document.getElementById('scene4')];
         const audio = document.getElementById('meow-sound');
-        const overlay = document.getElementById('start-overlay');
-
+        
         function initSystem() {
-            overlay.style.display = 'none';
+            document.getElementById('start-overlay').style.display = 'none';
+            // 微信音频自动播放补丁
+            if (window.WeixinJSBridge) {
+                WeixinJSBridge.invoke('getNetworkType', {}, () => { audio.play(); audio.pause(); }, false);
+            }
             startDrama();
         }
 
-        // 这里的间隔保持在 1.5秒，给渐变变色留出时间
-        function typeEffect(element, textArray, callback) {
-            let i = 0;
-            function addLine() {
-                if (i < textArray.length) {
-                    const p = document.createElement('p');
-                    p.textContent = textArray[i];
-                    element.appendChild(p);
-                    i++;
-                    setTimeout(addLine, 1800); 
-                } else {
-                    setTimeout(callback, 2500);
-                }
+        // 核心流程控制
+        async function runScene(sceneId, textArray) {
+            const container = document.getElementById(sceneId);
+            container.classList.add('active');
+            
+            for (let text of textArray) {
+                const p = document.createElement('span');
+                p.className = 'line-text';
+                p.textContent = text;
+                container.appendChild(p);
+
+                // 1. 逐字出现（绿色）
+                p.style.animation = "showGreen 2.5s linear forwards";
+                await new Promise(r => setTimeout(r, 2500)); // 等待出现完
+
+                // 2. 等待 1.5 秒
+                await new Promise(r => setTimeout(r, 1500));
+
+                // 3. 逐字变色（变粉）
+                p.style.animation = "turnPink 2.5s linear forwards";
+                await new Promise(r => setTimeout(r, 2500)); // 等待变色完
+
+                // 4. 等待 1 秒再出下一行
+                await new Promise(r => setTimeout(r, 1000));
             }
-            addLine();
+            
+            await new Promise(r => setTimeout(r, 1000));
+            container.classList.remove('active');
         }
 
-        function startProgress(element, callback) {
-            let progress = 0;
+        async function startProgress() {
+            const container = document.getElementById('scene3');
+            container.classList.add('active');
             const p = document.createElement('p');
-            p.style.background = "none"; // 进度条保持原色不参与渐变
-            p.style.webkitTextFillColor = "#00ff00";
-            element.appendChild(p);
-            const interval = setInterval(() => {
-                progress++;
-                p.textContent = `系统修复中... ${progress}%`;
-                if (progress >= 100) {
-                    clearInterval(interval);
-                    const p2 = document.createElement('p');
-                    p2.textContent = "Bug 已修复，系统请求重启。";
-                    element.appendChild(p2);
-                    setTimeout(callback, 2000);
-                }
-            }, 50); 
+            p.className = 'progress-line';
+            container.appendChild(p);
+
+            // 1%-100% 滚动
+            for (let i = 1; i <= 100; i++) {
+                p.textContent = `系统修复中... ${i}%`;
+                await new Promise(r => setTimeout(r, 40));
+            }
+            
+            // 变色逻辑：整行变粉
+            p.classList.add('pink-text');
+            const p2 = document.createElement('p');
+            p2.className = 'progress-line pink-text';
+            p2.textContent = "Bug 已修复，系统请求重启。";
+            container.appendChild(p2);
+            
+            await new Promise(r => setTimeout(r, 2500));
+            container.classList.remove('active');
         }
 
         function createHearts() {
@@ -122,32 +146,30 @@
             }, 250);
         }
 
-        function startDrama() {
-            scenes[0].classList.add('active');
-            typeEffect(scenes[0], [
+        async function startDrama() {
+            // 第一画面
+            await runScene('scene1', [
                 "正在建立与 [乖乖] 的通信连接... 成功",
                 "正在自检情绪控制系统... 发现严重错误 (Error 404)",
                 "正在加载“求原谅”协议 v1.0..."
-            ], () => {
-                scenes[0].classList.remove('active');
-                scenes[1].classList.add('active');
-                typeEffect(scenes[1], [
-                    "> git commit -m '修复：忽略了乖乖的想法和感受'",
-                    "> git commit -m '更新：将小兮大人的心情优先级设为最高 (Highest)'",
-                    "> git commit -m '重构：优化沟通模式，增加 1000% 的体贴'",
-                    "> git push -f origin 永远在一起"
-                ], () => {
-                    scenes[1].classList.remove('active');
-                    scenes[2].classList.add('active');
-                    startProgress(scenes[2], () => {
-                        scenes[2].classList.remove('active');
-                        audio.play(); 
-                        scenes[3].classList.add('active');
-                        createHearts();
-                        document.getElementById('final-msg').innerHTML = "小兮大人，你愿意给这个笨蛋<br>一个重新运行的机会吗？喵~";
-                    });
-                });
-            });
+            ]);
+
+            // 第二画面
+            await runScene('scene2', [
+                "> git commit -m '修复：忽略了乖乖的想法和感受'",
+                "> git commit -m '更新：将小兮大人的心情优先级设为最高 (Highest)'",
+                "> git commit -m '重构：优化沟通模式，增加 1000% 的体贴'",
+                "> git push -f origin 永远在一起"
+            ]);
+
+            // 第三画面
+            await startProgress();
+
+            // 最终画面
+            audio.play();
+            document.getElementById('scene4').classList.add('active');
+            createHearts();
+            document.getElementById('final-msg').innerHTML = "小兮大人，你愿意给这个笨蛋<br>一个重新运行的机会吗？喵~";
         }
     </script>
 </body>
